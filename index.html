@@ -3127,63 +3127,73 @@ window.toggleTousEffacer = function(checked) {
 };
 
 window.confirmerEffacer = function() {
-  const cbs = document.querySelectorAll('.eff-tech-cb:checked');
-  const tousCb = document.getElementById('eff-tous');
-  const techSelectionnes = tousCb.checked
-    ? techniciens.map(t => t.nom)
-    : Array.from(cbs).map(cb => techniciens[parseInt(cb.dataset.idx)]?.nom).filter(Boolean);
+  try {
+    const cbs = document.querySelectorAll('.eff-tech-cb:checked');
+    const tousCb = document.getElementById('eff-tous');
+    const techSelectionnes = (tousCb && tousCb.checked)
+      ? techniciens.map(function(t){ return t.nom; })
+      : Array.from(cbs).map(function(cb){
+          const idx = parseInt(cb.dataset.idx);
+          return techniciens[idx] ? techniciens[idx].nom : null;
+        }).filter(Boolean);
 
-  if (techSelectionnes.length === 0) {
-    document.getElementById('eff-error').style.display = 'block';
-    return;
-  }
-
-  const periode = document.querySelector('input[name="eff-periode"]:checked').value;
-
-  if (periode === 'tout') {
-    // Effacer tout le planning pour ces techniciens
-    Object.keys(planningData).forEach(key => {
-      if (!planningData[key]) return;
-      if (planningData[key].resultats) {
-        planningData[key].resultats = planningData[key].resultats.filter(
-          r => !techSelectionnes.includes(r.tech.nom)
-        );
-        if (planningData[key].resultats.length === 0) delete planningData[key];
-      }
-    });
-    showToast('Planning effacé pour ' + techSelectionnes.join(', '));
-
-  } else if (periode === 'semaine') {
-    // Effacer uniquement la semaine affichée
-    getJoursSemaine().forEach(j => {
-      if (!planningData[j.key]) return;
-      if (planningData[j.key].resultats) {
-        planningData[j.key].resultats = planningData[j.key].resultats.filter(
-          r => !techSelectionnes.includes(r.tech.nom)
-        );
-        if (planningData[j.key].resultats.length === 0) delete planningData[j.key];
-      }
-    });
-    showToast('Semaine effacée pour ' + techSelectionnes.join(', '));
-
-  } else if (periode === 'jour') {
-    // Effacer un jour spécifique
-    const dateKey = document.getElementById('eff-date').value;
-    if (!dateKey) { document.getElementById('eff-error').textContent = 'Choisissez une date.'; document.getElementById('eff-error').style.display = 'block'; return; }
-    if (planningData[dateKey]?.resultats) {
-      planningData[dateKey].resultats = planningData[dateKey].resultats.filter(
-        r => !techSelectionnes.includes(r.tech.nom)
-      );
-      if (planningData[dateKey].resultats.length === 0) delete planningData[dateKey];
+    if (techSelectionnes.length === 0) {
+      document.getElementById('eff-error').textContent = 'Selectionnez au moins un technicien.';
+      document.getElementById('eff-error').style.display = 'block';
+      return;
     }
-    showToast('Planning du ' + dateKey + ' effacé');
-  }
 
-  savePlanning();
-  fermerModalEffacer();
-  chargerJour(jourActif);
-  renderSemaineNav();
-  renderTechniciens();
+    const radioChecked = document.querySelector('input[name="eff-periode"]:checked');
+    const periode = radioChecked ? radioChecked.value : 'tout';
+
+    if (!planningData) planningData = {};
+
+    if (periode === 'tout') {
+      const cles = Object.keys(planningData);
+      cles.forEach(function(key) {
+        if (!planningData[key] || !planningData[key].resultats) return;
+        planningData[key].resultats = planningData[key].resultats.filter(function(r) {
+          return techSelectionnes.indexOf(r.tech.nom) === -1;
+        });
+        if (planningData[key].resultats.length === 0) {
+          planningData[key].resultats = [];
+        }
+      });
+      showToast('Planning efface pour ' + techSelectionnes.join(', '));
+
+    } else if (periode === 'semaine') {
+      getJoursSemaine().forEach(function(j) {
+        if (!planningData[j.key] || !planningData[j.key].resultats) return;
+        planningData[j.key].resultats = planningData[j.key].resultats.filter(function(r) {
+          return techSelectionnes.indexOf(r.tech.nom) === -1;
+        });
+      });
+      showToast('Semaine effacee pour ' + techSelectionnes.join(', '));
+
+    } else if (periode === 'jour') {
+      const dateKey = document.getElementById('eff-date').value;
+      if (!dateKey) {
+        document.getElementById('eff-error').textContent = 'Choisissez une date.';
+        document.getElementById('eff-error').style.display = 'block';
+        return;
+      }
+      if (planningData[dateKey] && planningData[dateKey].resultats) {
+        planningData[dateKey].resultats = planningData[dateKey].resultats.filter(function(r) {
+          return techSelectionnes.indexOf(r.tech.nom) === -1;
+        });
+      }
+      showToast('Planning du ' + dateKey + ' efface');
+    }
+
+    if (typeof savePlanning === 'function') savePlanning();
+    fermerModalEffacer();
+    if (typeof chargerJour === 'function' && jourActif) chargerJour(jourActif);
+    if (typeof renderSemaineNav === 'function') renderSemaineNav();
+    if (typeof renderTechniciens === 'function') renderTechniciens();
+  } catch(err) {
+    console.error('Erreur confirmerEffacer:', err);
+    showToast('Erreur lors de l effacement: ' + err.message, true);
+  }
 };
 
 // ── PLANNING TECHNICIEN ──
