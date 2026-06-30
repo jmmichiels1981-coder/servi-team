@@ -2,7 +2,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "API_KEY"
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyAaXJfSXVFCIH3EWugnSKM3ncNKpQemmJU"
 
 [[headers]]
   for = "/*"
