@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prestige Collector's — Enchères Privées</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
 <style>
   :root {
     --noir: #1a1612; --brun: #3d2b1f; --or: #c8a96e; --or-clair: #e8d5a3;
@@ -373,9 +374,42 @@
       <input type="number" id="montant-enchere" min="0" step="1">
       <div class="prix-min-info" id="prix-min-info"></div>
     </div>
-    <div class="paypal-section">
-      <p style="font-size:13px;color:var(--gris);font-family:Arial;margin-bottom:12px">En confirmant, vous validez votre offre et procédez au paiement via PayPal.</p>
-      <button class="paypal-btn" onclick="validerEnchere()">💳 PayPal — Confirmer mon offre</button>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #eee">
+      <button class="paypal-btn" style="background:var(--brun)" onclick="validerEnchere()">🔨 Confirmer mon offre</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONDITIONS PAIEMENT -->
+<div class="modal" id="modal-conditions">
+  <div class="modal-box" style="text-align:center;max-width:520px">
+    <button class="modal-close" onclick="document.getElementById('modal-conditions').classList.remove('open');lotActif=null;">✕</button>
+    <div style="font-size:36px;margin-bottom:12px">🔨</div>
+    <div class="modal-titre" style="margin-bottom:12px">Conditions de participation</div>
+    <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:6px;padding:16px;text-align:left;font-family:Arial;font-size:13px;line-height:1.7;color:#555;margin-bottom:20px">
+      <strong style="color:#b7770d">⚠️ Engagement d'achat</strong><br><br>
+      En soumettant une offre, vous vous engagez à acheter le lot si vous remportez l'enchère.<br><br>
+      <strong>📧 En cas de succès :</strong> vous recevrez un email de confirmation à votre adresse avec les coordonnées bancaires pour le virement.<br><br>
+      <strong>⏰ Délai de paiement : 48 heures</strong> à compter de la réception de l'email de confirmation. Passé ce délai, votre offre sera annulée et le lot proposé au suivant.<br><br>
+      <strong>🏦 Mode de paiement :</strong> virement bancaire uniquement.
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn-submit" style="width:auto;padding:12px 24px;background:#ccc;color:#555" onclick="document.getElementById('modal-conditions').classList.remove('open');lotActif=null;">Annuler</button>
+      <button class="btn-submit" style="width:auto;padding:12px 24px" onclick="ouvrirModalApresConditions()">✅ J'accepte — Enchérir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GALERIE PHOTOS -->
+<div class="modal" id="modal-galerie">
+  <div class="modal-box" style="max-width:700px;width:95%">
+    <button class="modal-close" onclick="document.getElementById('modal-galerie').classList.remove('open')">✕</button>
+    <div class="modal-titre" id="galerie-titre" style="margin-bottom:16px"></div>
+    <div id="galerie-photo-principale" style="width:100%;height:360px;background:#e8e0d5;border-radius:4px;overflow:hidden;margin-bottom:12px;display:flex;align-items:center;justify-content:center"></div>
+    <div id="galerie-miniatures" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div id="galerie-desc" style="font-family:Arial;font-size:14px;color:var(--gris);line-height:1.6;margin-bottom:20px"></div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn-submit" style="width:auto;padding:12px 28px" id="btn-galerie-encherir">🔨 Enchérir sur ce lot</button>
     </div>
   </div>
 </div>
@@ -686,7 +720,7 @@ function inscrire(e) {
     boutique: document.getElementById('insc-boutique').value,
     ville: document.getElementById('insc-ville').value,
     specialite: document.getElementById('insc-specialite').value,
-    date: new Date().toLocaleDateString('fr-BE'), valide: false
+    date: new Date().toLocaleDateString('fr-BE'), valide: true
   });
   sauvegarder();
   document.getElementById('form-inscription').style.display = 'none';
@@ -723,11 +757,24 @@ function cardHTML(lot) {
   const timer = lot.statut === 'actif' ? getTimeLeft(lot) : null;
   const fini = timer === 0 || lot.statut === 'termine';
   const nb = getNbOffres(lot.id);
-  const imgHTML = lot.photo ? `<img src="${lot.photo}" onerror="this.parentNode.innerHTML='🏺'">` : '🏺';
+  const photosArr = lot.photos && lot.photos.length ? lot.photos : (lot.photo ? [lot.photo] : []);
+  const imgHTML = photosArr.length
+    ? `<div style="position:relative;height:220px;overflow:hidden;cursor:pointer" onclick="ouvrirGalerie(${lot.id})" title="Cliquer pour voir les photos">
+        <img src="${photosArr[0]}" style="width:100%;height:100%;object-fit:cover">
+        ${photosArr.length>1?`<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:white;font-family:Arial;font-size:12px;padding:3px 8px;border-radius:10px">📷 ${photosArr.length} photos</div>`:''}
+        <div style="position:absolute;bottom:8px;left:8px;background:rgba(61,43,31,0.8);color:var(--or-clair);font-family:Arial;font-size:11px;padding:3px 8px;border-radius:10px">👁 Consulter</div>
+      </div>`
+    : '<div style="height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;background:#e8e0d5;cursor:pointer" onclick="ouvrirGalerie('+lot.id+')">🏺</div>';
+  const offresLot = encheres.filter(e=>e.lotId===lot.id).sort((a,b)=>b.montant-a.montant);
+  const historiqueHTML = offresLot.length ? `
+    <div style="margin:12px 0;border-top:1px solid #eee;padding-top:12px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gris);font-family:Arial;margin-bottom:8px">Historique des offres</div>
+      ${offresLot.slice(0,5).map((o,i)=>`<div style="display:flex;justify-content:space-between;font-family:Arial;font-size:12px;padding:4px 0;border-bottom:1px solid #f5f0e8;color:var(--gris)"><span>${o.nom.substring(0,3)}***</span><span style="font-weight:bold;color:var(--brun)">${o.montant}€</span><span>${o.date}</span></div>`).join('')}
+    </div>` : '';
   const btnHTML = fini
     ? `<button class="btn btn-encherie" disabled>Clôturée</button>`
     : userConnecte
-      ? `<button class="btn btn-encherie" onclick="ouvrirModal(${lot.id})">Faire une offre</button>`
+      ? `<button class="btn btn-encherie" onclick="ouvrirGalerie(${lot.id})">👁 Consulter & Enchérir</button>`
       : `<button class="btn btn-lock" onclick="ouvrirModalAuth()">🔒 Connexion requise</button>`;
   return `
     <div class="enchere-card">
@@ -741,6 +788,7 @@ function cardHTML(lot) {
         ${m?`<div class="prix-depart-txt">Départ : ${lot.prixDepart} €</div>`:''}
         ${!fini&&timer&&timer!==0?`<div class="timer" style="${timer.urgent?'background:var(--rouge)':''}">⏱ ${timer.str}${timer.urgent?' 🔴':''}</div>`:''}
         ${fini?`<div class="timer" style="background:var(--rouge)">Enchère clôturée</div>`:''}
+        ${historiqueHTML}
         ${btnHTML}
         <div class="nb-encheres">${nb} offre${nb!==1?'s':''}</div>
       </div>
@@ -781,7 +829,14 @@ function ouvrirModal(lotId) {
   if (!userConnecte) { ouvrirModalAuth(); return; }
   lotActif = lots.find(l => l.id === lotId);
   if (!lotActif) return;
-  const m = getMeilleur(lotId);
+  // Afficher pop-up conditions de paiement
+  document.getElementById('modal-conditions').classList.add('open');
+  return;
+}
+function ouvrirModalApresConditions() {
+  document.getElementById('modal-conditions').classList.remove('open');
+  if (!lotActif) return;
+  const m = getMeilleur(lotActif.id);
   const prixActuel = m ? m.montant : lotActif.prixDepart;
   const inc = getIncrement(prixActuel);
   const minOffre = prixActuel + inc;
@@ -794,6 +849,48 @@ function ouvrirModal(lotId) {
   document.getElementById('modal-enchere').classList.add('open');
 }
 function fermerModal() { document.getElementById('modal-enchere').classList.remove('open'); lotActif = null; }
+
+function ouvrirGalerie(lotId) {
+  const lot = lots.find(l => l.id === lotId);
+  if (!lot) return;
+  lotActif = lot;
+  const photosArr = lot.photos && lot.photos.length ? lot.photos : (lot.photo ? [lot.photo] : []);
+
+  document.getElementById('galerie-titre').textContent = lot.titre;
+  document.getElementById('galerie-desc').textContent = lot.description || '';
+
+  const principale = document.getElementById('galerie-photo-principale');
+  if (photosArr.length) {
+    principale.innerHTML = `<img src="${photosArr[0]}" style="width:100%;height:100%;object-fit:contain">`;
+  } else {
+    principale.innerHTML = '<span style="font-size:48px">🏺</span>';
+  }
+
+  const minis = document.getElementById('galerie-miniatures');
+  minis.innerHTML = photosArr.map((p, i) => `
+    <img src="${p}" onclick="document.getElementById('galerie-photo-principale').innerHTML='<img src=\''+this.src+'\' style=\'width:100%;height:100%;object-fit:contain\'>';"
+    style="width:70px;height:70px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid ${i===0?'var(--or)':'#ddd5c8'};transition:border 0.2s"
+    onmouseover="this.style.borderColor='var(--or)'" onmouseout="this.style.borderColor='#ddd5c8'">`).join('');
+
+  // Bouton enchérir dans la galerie
+  const btnGalerie = document.getElementById('btn-galerie-encherir');
+  const fini = lot.statut === 'termine';
+  if (fini) {
+    btnGalerie.textContent = 'Enchère clôturée';
+    btnGalerie.disabled = true;
+    btnGalerie.style.background = '#ccc';
+  } else if (!userConnecte) {
+    btnGalerie.textContent = '🔒 Connexion requise';
+    btnGalerie.onclick = () => { document.getElementById('modal-galerie').classList.remove('open'); ouvrirModalAuth(); };
+  } else {
+    btnGalerie.textContent = '🔨 Enchérir sur ce lot';
+    btnGalerie.disabled = false;
+    btnGalerie.style.background = 'var(--brun)';
+    btnGalerie.onclick = () => { document.getElementById('modal-galerie').classList.remove('open'); ouvrirModal(lotId); };
+  }
+
+  document.getElementById('modal-galerie').classList.add('open');
+}
 function ouvrirModalAuth() { document.getElementById('modal-auth').classList.add('open'); }
 function fermerModalAuth() { document.getElementById('modal-auth').classList.remove('open'); }
 
@@ -818,10 +915,8 @@ function validerEnchere() {
 
   encheres.push({ id: Date.now(), lotId: lotActif.id, montant, nom: userConnecte.nom, email: userConnecte.email, date: new Date().toLocaleString('fr-BE') });
   sauvegarder();
-  const url = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(PAYPAL_EMAIL)}&amount=${montant}&currency_code=EUR&item_name=${encodeURIComponent('Prestige Collectors: '+lotActif.titre)}&return=${encodeURIComponent(window.location.href)}&cancel_return=${encodeURIComponent(window.location.href)}`;
   fermerModal(); renderEnCours();
-  window.open(url, '_blank');
-  alert(`Offre de ${montant} € enregistrée ! Fenêtre PayPal ouverte.`);
+  alert(`✓ Votre offre de ${montant} € a bien été enregistrée !\n\nSi vous remportez cette enchère, vous recevrez un email avec les instructions de paiement.`);
 }
 
 // ADMIN
@@ -942,10 +1037,49 @@ function previewEmail() {
   prev.style.display='block';
   prev.innerHTML=`<strong>Objet :</strong> ${document.getElementById('email-objet').value}<br><br>${document.getElementById('email-corps').value.replace(/\n/g,'<br>')}`;
 }
-function envoyerEmail() {
-  const actifs=membres.filter(m=>m.valide);
+async function envoyerEmail() {
+  const actifs = membres.filter(m => m.valide);
   if (!actifs.length) { alert('Aucun membre actif.'); return; }
-  alert(`Simulation : envoi à ${actifs.length} membre(s) :\n${actifs.map(m=>m.email).join('\n')}`);
+  const objet = document.getElementById('email-objet').value;
+  const corps = document.getElementById('email-corps').value;
+  if (!objet || !corps) { alert('Remplissez l\'objet et le message.'); return; }
+  try {
+    const r = await fetch('https://formspree.io/f/maewwpdl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'contact.prestigecollectors@gmail.com',
+        subject: '[Prestige Collectors] ' + objet,
+        message: 'DESTINATAIRES : ' + actifs.map(m=>m.email).join(', ') + '\n\n' + corps
+      })
+    });
+    if (r.ok) { alert(`✓ Email envoyé ! (${actifs.length} membre(s) notifiés via votre email.)`); }
+    else { alert('Erreur lors de l\'envoi. Réessayez.'); }
+  } catch(e) { alert('Erreur réseau : ' + e.message); }
+}
+
+async function notifierGagnant(nom, email, titre, montant) {
+  await fetch('https://formspree.io/f/maewwpdl', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'contact.prestigecollectors@gmail.com',
+      subject: '[Prestige Collectors] 🏆 Enchère remportée — ' + titre,
+      message: `GAGNANT : ${nom}\nEMAIL : ${email}\nOBJET : ${titre}\nMONTANT : ${montant}€\n\n⚠️ Délai de paiement : 48h\nMode de paiement : virement bancaire`
+    })
+  });
+}
+
+async function notifierNouvelleInscription(membre) {
+  await fetch('https://formspree.io/f/maewwpdl', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'contact.prestigecollectors@gmail.com',
+      subject: '[Prestige Collectors] 🆕 Nouvelle inscription — ' + membre.nom,
+      message: `NOM : ${membre.nom}\nEMAIL : ${membre.email}\nBOUTIQUE : ${membre.boutique}\nVILLE : ${membre.ville}\nSPÉCIALITÉ : ${membre.specialite}`
+    })
+  });
 }
 
 // Init
@@ -955,7 +1089,11 @@ setInterval(()=>{
   lots.forEach(l=>{
     if(l.statut==='actif'&&l.debut){
       const duree=l.duree||24*3600*1000;
-      if(Date.now()>new Date(l.debut).getTime()+duree){l.statut='termine';modif=true;}
+      if(Date.now()>new Date(l.debut).getTime()+duree){
+        l.statut='termine';modif=true;
+        const gagnant=getMeilleur(l.id);
+        if(gagnant) notifierGagnant(gagnant.nom, gagnant.email, l.titre, gagnant.montant);
+      }
     }
   });
   if(modif) sauvegarder();
