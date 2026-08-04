@@ -349,7 +349,14 @@
       <div class="email-preview" id="email-preview"></div>
       <button class="btn-email" onclick="previewEmail()">👁 Prévisualiser</button>
       <button class="btn-email" style="background:var(--vert);color:white" onclick="envoyerEmail()">📤 Envoyer</button>
-      <p style="font-size:12px;color:var(--gris);font-family:Arial;margin-top:10px">⚠️ Intégration EmailJS requise pour l'envoi réel.</p>
+      <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:4px;padding:14px;margin-top:12px;font-family:Arial;font-size:13px;">
+        <strong style="color:#b7770d">📧 Pour activer l'envoi réel des emails :</strong><br><br>
+        1. Créez un compte gratuit sur <a href="https://www.emailjs.com" target="_blank" style="color:#3d5ea6">emailjs.com</a><br>
+        2. Créez un service email (Gmail recommandé)<br>
+        3. Créez un template avec les variables : <code>{{to_email}}</code>, <code>{{subject}}</code>, <code>{{message}}</code><br>
+        4. Remplacez dans le code : <code>YOUR_SERVICE_ID</code>, <code>YOUR_TEMPLATE_ID</code>, <code>YOUR_PUBLIC_KEY</code><br><br>
+        <span style="color:var(--gris)">En attendant, le bouton "Envoyer" affiche la liste des destinataires.</span>
+      </div>
     </div>
   </div>
 </div>
@@ -618,6 +625,7 @@ Le champ verdict doit être : ACHETER (bonne affaire), NEGOCIER (possible si pri
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#3d5ea6;margin-bottom:6px;font-weight:bold">🔨 Prix de départ enchère</div>
           <div style="font-size:20px;font-weight:bold;color:#3d5ea6">${json.prix_depart_enchere_conseille}€</div>
           <div style="font-size:12px;color:var(--gris);margin-top:4px">${json.conseil_enchere}</div>
+          <button onclick="document.getElementById('lot-prix').value=${json.prix_depart_enchere_conseille};this.textContent='✓ Ajouté !';this.style.background='#2e5e3e';" style="margin-top:10px;background:#3d5ea6;color:white;border:none;padding:7px 14px;border-radius:3px;font-family:Arial;font-size:12px;cursor:pointer;width:100%">➕ Ajouter comme prix de départ</button>
         </div>
 
         <div style="background:#fdf0f4;border:1px solid #f0c3cf;border-radius:4px;padding:14px">
@@ -883,7 +891,10 @@ function renderAdmin() {
       <div style="display:flex;align-items:center;gap:12px;flex:1">
         ${lot.photo?`<img src="${lot.photo}" style="width:50px;height:50px;object-fit:cover;border-radius:2px;flex-shrink:0">`:''}
         <div>
-          <div class="lot-admin-nom">${lot.titre} <span class="badge-statut" style="background:${c}">${lot.statut}</span></div>
+          <div class="lot-admin-nom">
+          ${(lot.statut==='actif'||lot.statut==='attente') ? '<a href="#" onclick="event.preventDefault();showPage(\'' + (lot.statut==='actif'?'en-cours':'a-venir') + '\')" style="color:var(--brun);text-decoration:underline;cursor:pointer">'+lot.titre+'</a>' : lot.titre}
+          <span class="badge-statut" style="background:${c}">${lot.statut}</span>
+        </div>
           <div class="lot-admin-detail">Départ : ${lot.prixDepart}€ | Coût : ${lot.cout}€ | ${m?'Meilleure offre : '+m.montant+'€ ('+m.nom+') | Marge : '+(m.montant-lot.cout)+'€':'Aucune offre'}</div>
         </div>
       </div>
