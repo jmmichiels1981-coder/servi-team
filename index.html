@@ -132,9 +132,9 @@
   .btn-ia { background: var(--or); color: var(--brun); border: none; padding: 10px 20px; cursor: pointer; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; border-radius: 2px; display: flex; align-items: center; gap: 8px; }
   .btn-ia:disabled { opacity: 0.6; cursor: not-allowed; }
   .ia-loading { display: none; font-family: Arial, sans-serif; font-size: 13px; color: var(--gris); margin-top: 8px; }
-  .estimation-box { background: #f0faf4; border: 1px solid #c3dfc9; border-radius: 4px; padding: 16px; margin-top: 8px; display: none; }
+  .estimation-box { background: var(--blanc); border: 1px solid #c3dfc9; border-radius: 4px; padding: 16px; margin-top: 8px; display: none; }
   .estimation-box .estim-titre { font-size: 12px; font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; color: var(--vert); margin-bottom: 10px; font-weight: bold; }
-  .estimation-valeur { font-size: 28px; color: var(--vert); font-weight: bold; margin-bottom: 6px; }
+  .estimation-valeur { font-size: 22px; color: var(--vert); font-weight: bold; margin-bottom: 6px; display:flex; align-items:center; gap:12px; }
   .estimation-detail { font-size: 13px; color: var(--gris); font-family: Arial, sans-serif; line-height: 1.6; }
   .btn-estimer { background: var(--vert); color: white; border: none; padding: 10px 20px; cursor: pointer; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; border-radius: 2px; margin-top: 8px; }
   .btn-estimer:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -544,25 +544,34 @@ async function estimerValeur() {
       content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } });
     }
 
-    content.push({ type: 'text', text: `Tu es un expert en ventes aux enchères et estimation d'antiquités et objets de collection.
+    content.push({ type: 'text', text: `Tu es un expert en ventes aux enchères et estimation d'antiquités et objets de collection, spécialisé dans les transactions entre professionnels.
 
-Estime la valeur marché de cet objet pour une vente aux enchères entre professionnels.
+Analyse cet objet et fournis une estimation complète pour aider un sourceur indépendant à prendre sa décision d'achat.
 
 Titre : ${titre}
 Catégorie : ${categorie}
 Description : ${desc || 'non fournie'}
-Prix de départ envisagé : ${prixDepart ? prixDepart + '€' : 'non défini'}
 ${photosBase64.length > 0 ? 'Une photo de l\'objet est jointe.' : ''}
 
 Réponds UNIQUEMENT en JSON valide avec ce format exact, sans texte avant ou après :
 {
-  "fourchette_min": 150,
-  "fourchette_max": 280,
-  "estimation_haute": 350,
+  "valeur_marche_min": 150,
+  "valeur_marche_max": 280,
+  "valeur_marche_haute": 350,
+  "prix_achat_max_conseille": 120,
+  "prix_depart_enchere_conseille": 150,
+  "prix_cible_antiquaire": 200,
+  "marge_estimee_sourceur": 80,
+  "marge_estimee_antiquaire": 80,
   "confiance": "moyenne",
-  "explication": "Explication courte en 2-3 phrases sur la valeur estimée et les facteurs qui influencent le prix.",
-  "conseil_prix_depart": "Conseil court sur le prix de départ optimal."
-}` });
+  "verdict": "ACHETER",
+  "explication_marche": "Explication courte en 2-3 phrases sur la valeur marché et les facteurs qui influencent le prix.",
+  "conseil_achat": "Conseil court sur le prix maximum à payer pour faire une bonne affaire.",
+  "conseil_enchere": "Conseil sur le prix de départ optimal pour maximiser les enchères.",
+  "conseil_antiquaire": "Explication du prix auquel l'antiquaire peut acheter tout en gardant une marge confortable pour la revente."
+}
+
+Le champ verdict doit être : ACHETER (bonne affaire), NEGOCIER (possible si prix réduit) ou PASSER (pas rentable).` });
 
     const response = await fetch('/.netlify/functions/claude-proxy', {
       method: 'POST',
@@ -583,12 +592,46 @@ Réponds UNIQUEMENT en JSON valide avec ce format exact, sans texte avant ou apr
 
     const confiance = { haute: '🟢 Élevée', moyenne: '🟡 Moyenne', faible: '🔴 Faible' }[json.confiance] || '🟡 Moyenne';
 
-    document.getElementById('estim-fourchette').textContent = `${json.fourchette_min}€ — ${json.fourchette_max}€`;
+    const verdictColor = json.verdict === 'ACHETER' ? '#2e5e3e' : json.verdict === 'NEGOCIER' ? '#b7770d' : '#8b2e2e';
+    const verdictEmoji = json.verdict === 'ACHETER' ? '✅' : json.verdict === 'NEGOCIER' ? '⚠️' : '❌';
+
+    document.getElementById('estim-fourchette').innerHTML = `
+      <span style="font-size:20px;font-family:Arial;font-weight:bold;color:${verdictColor}">${verdictEmoji} ${json.verdict}</span>
+      <span style="font-size:13px;color:var(--gris);font-family:Arial;margin-left:12px">Confiance : ${confiance}</span>`;
+
     document.getElementById('estim-detail').innerHTML = `
-      <strong>Estimation haute :</strong> jusqu'à ${json.estimation_haute}€<br>
-      <strong>Confiance :</strong> ${confiance}<br><br>
-      <strong>Analyse :</strong> ${json.explication}<br><br>
-      <strong>Conseil :</strong> ${json.conseil_prix_depart}`;
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;font-family:Arial;font-size:13px">
+
+        <div style="background:#f0faf4;border:1px solid #c3dfc9;border-radius:4px;padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#2e5e3e;margin-bottom:6px;font-weight:bold">💶 Valeur marché</div>
+          <div style="font-size:20px;font-weight:bold;color:#2e5e3e">${json.valeur_marche_min}€ — ${json.valeur_marche_max}€</div>
+          <div style="font-size:12px;color:var(--gris);margin-top:4px">Haute : jusqu'à ${json.valeur_marche_haute}€</div>
+        </div>
+
+        <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:4px;padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#b7770d;margin-bottom:6px;font-weight:bold">🛒 Mon prix d'achat max</div>
+          <div style="font-size:20px;font-weight:bold;color:#b7770d">${json.prix_achat_max_conseille}€</div>
+          <div style="font-size:12px;color:var(--gris);margin-top:4px">${json.conseil_achat}</div>
+        </div>
+
+        <div style="background:#f0f4ff;border:1px solid #c3cff9;border-radius:4px;padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#3d5ea6;margin-bottom:6px;font-weight:bold">🔨 Prix de départ enchère</div>
+          <div style="font-size:20px;font-weight:bold;color:#3d5ea6">${json.prix_depart_enchere_conseille}€</div>
+          <div style="font-size:12px;color:var(--gris);margin-top:4px">${json.conseil_enchere}</div>
+        </div>
+
+        <div style="background:#fdf0f4;border:1px solid #f0c3cf;border-radius:4px;padding:14px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8b2e2e;margin-bottom:6px;font-weight:bold">🏛️ Prix cible antiquaire</div>
+          <div style="font-size:20px;font-weight:bold;color:#8b2e2e">${json.prix_cible_antiquaire}€</div>
+          <div style="font-size:12px;color:var(--gris);margin-top:4px">${json.conseil_antiquaire}</div>
+        </div>
+
+      </div>
+
+      <div style="background:#f5f0e8;border:1px solid #ddd5c8;border-radius:4px;padding:14px;font-family:Arial;font-size:13px;margin-top:4px">
+        <div style="margin-bottom:8px"><strong>📊 Marges estimées :</strong> Sourceur : <strong style="color:#2e5e3e">+${json.marge_estimee_sourceur}€</strong> | Antiquaire : <strong style="color:#3d5ea6">+${json.marge_estimee_antiquaire}€</strong></div>
+        <div><strong>🔍 Analyse marché :</strong> ${json.explication_marche}</div>
+      </div>`;
 
     result.style.display = 'block';
 
