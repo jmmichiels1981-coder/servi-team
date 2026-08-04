@@ -116,6 +116,7 @@
   .membres-table tr:hover td { background: var(--creme); }
   .gagnant-tag { background: var(--or); color: var(--brun); padding: 2px 8px; border-radius: 2px; font-size: 11px; font-weight: bold; }
   .section-vide { text-align: center; color: var(--gris); font-family: Arial, sans-serif; padding: 40px; font-size: 14px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
   /* UPLOAD PHOTO */
   .upload-zone { border: 2px dashed #ddd5c8; border-radius: 4px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--creme); position: relative; grid-column: 1/-1; }
@@ -320,7 +321,10 @@
           </select>
         </div>
       </div>
-      <button class="btn-aa btn-vert" onclick="ajouterLot()" style="margin-top:8px">➕ Ajouter le lot</button>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <button class="btn-aa btn-vert" onclick="ajouterLot()">➕ Ajouter le lot</button>
+        <button class="btn-aa btn-gris" onclick="resetFormulaire()">🔄 Réinitialiser</button>
+      </div>
     </div>
 
     <div class="admin-section">
@@ -493,6 +497,26 @@ La description doit être sobre, précise, valorisante. Pas de superlatifs exces
   }
 }
 
+// RESET FORMULAIRE
+function resetFormulaire() {
+  if (!confirm('Réinitialiser le formulaire ? Toutes les données saisies seront perdues.')) return;
+  ['lot-titre','lot-prix','lot-cout','lot-desc','lot-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('lot-categorie').selectedIndex = 0;
+  document.getElementById('lot-statut-init').selectedIndex = 0;
+  photosBase64 = [];
+  const grid = document.getElementById('photos-preview-grid');
+  if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+  const uploadP = document.querySelector('#upload-zone p');
+  if (uploadP) uploadP.textContent = '📷 Cliquez pour uploader vos photos';
+  const fileInput = document.getElementById('lot-photo-file');
+  if (fileInput) fileInput.value = '';
+  const estimResult = document.getElementById('estimation-result');
+  if (estimResult) estimResult.style.display = 'none';
+}
+
 // ESTIMATION IA
 async function estimerValeur() {
   const titre = document.getElementById('lot-titre').value.trim();
@@ -630,10 +654,11 @@ function logoutAdmin() { showPage('accueil'); }
 function getIncrement(prix) { return prix < 100 ? 10 : prix < 250 ? 20 : 30; }
 function getTimeLeft(lot) {
   if (!lot.debut) return null;
-  const reste = new Date(lot.debut).getTime() + 24*3600*1000 - Date.now();
+  const duree = lot.duree || 24*3600*1000;
+  const reste = new Date(lot.debut).getTime() + duree - Date.now();
   if (reste <= 0) return 0;
   const h=Math.floor(reste/3600000), m=Math.floor((reste%3600000)/60000), s=Math.floor((reste%60000)/1000);
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return { str: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, urgent: reste <= 60000 };
 }
 function getMeilleur(lotId) {
   const offs = encheres.filter(e => e.lotId === lotId);
@@ -663,7 +688,7 @@ function cardHTML(lot) {
         <div class="prix-label">${m?'Meilleure offre':'Prix de départ'}</div>
         <div class="prix-valeur">${prixActuel} €</div>
         ${m?`<div class="prix-depart-txt">Départ : ${lot.prixDepart} €</div>`:''}
-        ${!fini&&timer?`<div class="timer">⏱ ${timer}</div>`:''}
+        ${!fini&&timer&&timer!==0?`<div class="timer" style="${timer.urgent?'background:var(--rouge)':''}">⏱ ${timer.str}${timer.urgent?' 🔴':''}</div>`:''}
         ${fini?`<div class="timer" style="background:var(--rouge)">Enchère clôturée</div>`:''}
         ${btnHTML}
         <div class="nb-encheres">${nb} offre${nb!==1?'s':''}</div>
@@ -673,7 +698,10 @@ function cardHTML(lot) {
 
 function renderEnCours() {
   lots.forEach(l => {
-    if (l.statut==='actif'&&l.debut&&Date.now()>new Date(l.debut).getTime()+24*3600*1000) { l.statut='termine'; sauvegarder(); }
+    if (l.statut==='actif'&&l.debut) {
+      const duree = l.duree || 24*3600*1000;
+      if (Date.now() > new Date(l.debut).getTime() + duree) { l.statut='termine'; sauvegarder(); }
+    }
   });
   const actifs = lots.filter(l => l.statut==='actif'||l.statut==='termine');
   document.getElementById('grille-en-cours').innerHTML = actifs.length ? actifs.map(cardHTML).join('') : '<div class="section-vide">Aucune enchère en cours.</div>';
@@ -725,6 +753,18 @@ function validerEnchere() {
   const prixActuel = m ? m.montant : lotActif.prixDepart;
   const inc = getIncrement(prixActuel);
   if (montant < prixActuel + inc) { alert(`Minimum : ${prixActuel+inc} €`); return; }
+  // Extension +2 minutes si moins d'1 minute restante
+  const lotExt = lots.find(l => l.id === lotActif.id);
+  if (lotExt && lotExt.debut) {
+    const dureeActuelle = lotExt.duree || 24*3600*1000;
+    const fin = new Date(lotExt.debut).getTime() + dureeActuelle;
+    const resteMs = fin - Date.now();
+    if (resteMs > 0 && resteMs <= 60000) {
+      lotExt.duree = dureeActuelle + 2*60*1000;
+      alert('⏱ Dernière minute ! Enchère prolongée de 2 minutes.');
+    }
+  }
+
   encheres.push({ id: Date.now(), lotId: lotActif.id, montant, nom: userConnecte.nom, email: userConnecte.email, date: new Date().toLocaleString('fr-BE') });
   sauvegarder();
   const url = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(PAYPAL_EMAIL)}&amount=${montant}&currency_code=EUR&item_name=${encodeURIComponent('Prestige Collectors: '+lotActif.titre)}&return=${encodeURIComponent(window.location.href)}&cancel_return=${encodeURIComponent(window.location.href)}`;
@@ -858,7 +898,12 @@ function envoyerEmail() {
 updateNav();
 setInterval(()=>{
   let modif=false;
-  lots.forEach(l=>{if(l.statut==='actif'&&l.debut&&Date.now()>new Date(l.debut).getTime()+24*3600*1000){l.statut='termine';modif=true;}});
+  lots.forEach(l=>{
+    if(l.statut==='actif'&&l.debut){
+      const duree=l.duree||24*3600*1000;
+      if(Date.now()>new Date(l.debut).getTime()+duree){l.statut='termine';modif=true;}
+    }
+  });
   if(modif) sauvegarder();
 },30000);
 </script>
