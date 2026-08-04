@@ -140,6 +140,34 @@
   .btn-estimer { background: var(--vert); color: white; border: none; padding: 10px 20px; cursor: pointer; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; border-radius: 2px; margin-top: 8px; }
   .btn-estimer:disabled { opacity: 0.6; cursor: not-allowed; }
   .badge-statut { font-size: 11px; padding: 2px 8px; border-radius: 2px; font-family: Arial, sans-serif; color: white; }
+
+  /* ESPACE CLIENT */
+  .client-page { max-width: 900px; margin: 40px auto; padding: 0 24px 60px; }
+  .client-tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid var(--or); }
+  .client-tab { padding: 12px 28px; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; color: var(--gris); border: none; background: none; letter-spacing: 1px; transition: all 0.2s; position: relative; }
+  .client-tab:hover { color: var(--brun); }
+  .client-tab.active { color: var(--brun); font-weight: bold; border-bottom: 3px solid var(--or); margin-bottom: -2px; }
+  .client-tab-content { display: none; }
+  .client-tab-content.active { display: block; }
+
+  /* PASTILLE NOTIFICATION */
+  .notif-badge { background: var(--rouge); color: white; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+
+  /* COEUR FAVORI */
+  .btn-favori { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .btn-favori:hover { transform: scale(1.15); }
+
+  /* ENCHERES CLIENT */
+  .enchere-client-card { background: var(--blanc); border: 1px solid #ddd5c8; border-radius: 4px; padding: 20px; margin-bottom: 16px; display: flex; gap: 16px; align-items: center; }
+  .enchere-client-img { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #e8e0d5; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden; }
+  .enchere-client-img img { width: 100%; height: 100%; object-fit: cover; }
+  .enchere-client-info { flex: 1; }
+  .enchere-client-titre { font-size: 16px; color: var(--brun); margin-bottom: 4px; }
+  .enchere-client-montant { font-size: 20px; font-weight: bold; color: var(--or); }
+  .statut-encours-gagnant { color: var(--vert); font-family: Arial; font-size: 13px; font-weight: bold; }
+  .statut-encours-perdu { color: var(--rouge); font-family: Arial; font-size: 13px; font-weight: bold; }
+  .statut-gagnee { color: var(--vert); font-family: Arial; font-size: 13px; font-weight: bold; }
+  .statut-perdue { color: var(--gris); font-family: Arial; font-size: 13px; }
   .email-preview { background: white; border: 1px solid #ddd; padding: 16px; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #333; margin-top: 12px; border-radius: 2px; display: none; }
   .btn-email { background: var(--brun); color: var(--or); padding: 10px 20px; border: none; cursor: pointer; font-family: Arial, sans-serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; margin-top: 12px; margin-right: 8px; }
 </style>
@@ -369,6 +397,33 @@
   </div>
 </div>
 
+<!-- ESPACE CLIENT -->
+<div class="page" id="page-client">
+  <div class="sous-header">
+    <button class="btn-retour" onclick="showPage('accueil')">← Accueil</button>
+    <h2 id="client-header-nom">Mon compte</h2>
+  </div>
+  <div class="client-page">
+    <div class="client-tabs">
+      <button class="client-tab active" onclick="switchTab('favoris')">❤️ Mes favoris</button>
+      <button class="client-tab" onclick="switchTab('mes-encheres')">🔨 Mes enchères</button>
+      <button class="client-tab" onclick="switchTab('encheres-gagnees')">🏆 Enchères gagnées</button>
+    </div>
+    <!-- FAVORIS -->
+    <div class="client-tab-content active" id="tab-favoris">
+      <div id="favoris-grid" class="encheres-grid" style="margin:0;padding:0"></div>
+    </div>
+    <!-- MES ENCHERES -->
+    <div class="client-tab-content" id="tab-mes-encheres">
+      <div id="mes-encheres-list"></div>
+    </div>
+    <!-- ENCHERES GAGNEES -->
+    <div class="client-tab-content" id="tab-encheres-gagnees">
+      <div id="encheres-gagnees-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONDITIONS PAIEMENT -->
 <div class="modal" id="modal-conditions">
   <div class="modal-box" style="text-align:center;max-width:520px">
@@ -378,9 +433,10 @@
     <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:6px;padding:16px;text-align:left;font-family:Arial;font-size:13px;line-height:1.7;color:#555;margin-bottom:20px">
       <strong style="color:#b7770d">⚠️ Engagement d'achat</strong><br><br>
       En soumettant une offre, vous vous engagez à acheter le lot si vous remportez l'enchère.<br><br>
-      <strong>📧 En cas de succès :</strong> vous recevrez un email de confirmation à votre adresse avec les coordonnées bancaires pour le virement.<br><br>
-      <strong>⏰ Délai de paiement : 48 heures</strong> à compter de la réception de l'email de confirmation. Passé ce délai, votre offre sera annulée et le lot proposé au suivant.<br><br>
-      <strong>🏦 Mode de paiement :</strong> virement bancaire uniquement.
+      <strong>🏆 En cas de succès :</strong> rendez-vous directement dans votre compte rubrique <strong>"Enchères gagnées"</strong> pour effectuer le paiement en ligne.<br><br>
+      <strong>💶 Montant :</strong> votre offre gagnante + <strong>6,50 € de frais de livraison</strong>.<br><br>
+      <strong>⏰ Délai de paiement : 48 heures</strong> après la clôture de l'enchère. Passé ce délai, votre offre sera annulée.<br><br>
+      <strong>💳 Paiement sécurisé</strong> par carte bancaire ou PayPal.
     </div>
     <div style="display:flex;gap:12px;justify-content:center">
       <button class="btn-submit" style="width:auto;padding:12px 24px;background:#ccc;color:#555" onclick="document.getElementById('modal-conditions').classList.remove('open');lotActif=null;">Annuler</button>
@@ -433,10 +489,24 @@ function sauvegarder() {
   localStorage.setItem('pc_encheres', JSON.stringify(encheres));
 }
 
+function getNbSurencheri() {
+  if (!userConnecte) return 0;
+  let count = 0;
+  lots.filter(l => l.statut === 'actif').forEach(lot => {
+    const mesOffres = encheres.filter(e => e.lotId === lot.id && e.email === userConnecte.email);
+    if (!mesOffres.length) return;
+    const meilleur = getMeilleur(lot.id);
+    if (meilleur && meilleur.email !== userConnecte.email) count++;
+  });
+  return count;
+}
+
 function updateNav() {
   const nav = document.getElementById('nav-user');
   if (userConnecte) {
-    nav.innerHTML = `<span style="color:var(--or-clair)">👤 ${userConnecte.nom.split(' ')[0]}</span><button class="btn-nav" onclick="deconnecterUser()">Déconnexion</button><button class="btn-nav-admin" onclick="showPage('admin-login')">Admin</button>`;
+    const nb = getNbSurencheri();
+    const badge = nb > 0 ? `<span class="notif-badge">${nb}</span>` : '';
+    nav.innerHTML = `<span style="color:var(--or-clair);cursor:pointer" onclick="showPage('client')">👤 ${userConnecte.nom.split(' ')[0]}${badge}</span><button class="btn-nav" onclick="deconnecterUser()">Déconnexion</button><button class="btn-nav-admin" onclick="showPage('admin-login')">Admin</button>`;
   } else {
     nav.innerHTML = `<button class="btn-nav" onclick="showPage('connexion')">Connexion</button><button class="btn-nav" onclick="showPage('inscription')">S'inscrire</button><button class="btn-nav-admin" onclick="showPage('admin-login')">Admin</button>`;
   }
@@ -448,6 +518,7 @@ function showPage(id) {
   if (id === 'en-cours') renderEnCours();
   if (id === 'a-venir') renderAVenir();
   if (id === 'admin') renderAdmin();
+  if (id === 'client') renderClient();
   // Sécurité : vider le champ mot de passe admin à chaque ouverture
   if (id === 'admin-login') {
     setTimeout(() => {
@@ -755,11 +826,14 @@ function cardHTML(lot) {
   const fini = timer === 0 || lot.statut === 'termine';
   const nb = getNbOffres(lot.id);
   const photosArr = lot.photos && lot.photos.length ? lot.photos : (lot.photo ? [lot.photo] : []);
+  const isFavori = userConnecte && (JSON.parse(localStorage.getItem('pc_favoris_'+userConnecte.email)||'[]')).includes(lot.id);
+  const coeurHTML = `<button class="btn-favori" onclick="toggleFavori(event,${lot.id})" id="coeur-${lot.id}" title="${isFavori?'Retirer des favoris':'Ajouter aux favoris'}">${isFavori?'❤️':'🤍'}</button>`;
   const imgHTML = photosArr.length
     ? `<div style="position:relative;height:220px;overflow:hidden;cursor:pointer" onclick="ouvrirGalerie(${lot.id})" title="Cliquer pour voir les photos">
         <img src="${photosArr[0]}" style="width:100%;height:100%;object-fit:cover">
         ${photosArr.length>1?`<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:white;font-family:Arial;font-size:12px;padding:3px 8px;border-radius:10px">📷 ${photosArr.length} photos</div>`:''}
         <div style="position:absolute;bottom:8px;left:8px;background:rgba(61,43,31,0.8);color:var(--or-clair);font-family:Arial;font-size:11px;padding:3px 8px;border-radius:10px">👁 Consulter</div>
+        ${coeurHTML}
       </div>`
     : '<div style="height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;background:#e8e0d5;cursor:pointer" onclick="ouvrirGalerie('+lot.id+')">🏺</div>';
   const offresLot = encheres.filter(e=>e.lotId===lot.id).sort((a,b)=>b.montant-a.montant);
@@ -799,13 +873,13 @@ function renderEnCours() {
       if (Date.now() > new Date(l.debut).getTime() + duree) { l.statut='termine'; sauvegarder(); }
     }
   });
-  const actifs = lots.filter(l => l.statut==='actif'||l.statut==='termine');
+  const actifs = lots.filter(l => (l.statut==='actif'||l.statut==='termine') && !l.archive);
   document.getElementById('grille-en-cours').innerHTML = actifs.length ? actifs.map(cardHTML).join('') : '<div class="section-vide">Aucune enchère en cours.</div>';
   if (actifs.some(l=>l.statut==='actif')) setTimeout(renderEnCours, 1000);
 }
 
 function renderAVenir() {
-  const attente = lots.filter(l => l.statut==='attente');
+  const attente = lots.filter(l => l.statut==='attente' && !l.archive);
   document.getElementById('grille-a-venir').innerHTML = attente.length ? attente.map(lot => `
     <div class="enchere-card">
       <div class="enchere-img">${lot.photo?`<img src="${lot.photo}" onerror="this.parentNode.innerHTML='🔍'">`:'🔍'}</div>
@@ -864,10 +938,20 @@ function ouvrirGalerie(lotId) {
   }
 
   const minis = document.getElementById('galerie-miniatures');
-  minis.innerHTML = photosArr.map((p, i) => `
-    <img src="${p}" onclick="document.getElementById('galerie-photo-principale').innerHTML='<img src=\''+this.src+'\' style=\'width:100%;height:100%;object-fit:contain\'>';"
-    style="width:70px;height:70px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid ${i===0?'var(--or)':'#ddd5c8'};transition:border 0.2s"
-    onmouseover="this.style.borderColor='var(--or)'" onmouseout="this.style.borderColor='#ddd5c8'">`).join('');
+  minis.innerHTML = '';
+  if (photosArr.length > 0) {
+    photosArr.forEach((p, i) => {
+      const img = document.createElement('img');
+      img.src = p;
+      img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:4px;cursor:pointer;transition:border 0.2s;border:2px solid ' + (i===0 ? 'var(--or)' : '#ddd5c8');
+      img.addEventListener('click', () => {
+        document.getElementById('galerie-photo-principale').innerHTML = '<img src="' + p + '" style="width:100%;height:100%;object-fit:contain">';
+        minis.querySelectorAll('img').forEach(m => m.style.borderColor = '#ddd5c8');
+        img.style.borderColor = 'var(--or)';
+      });
+      minis.appendChild(img);
+    });
+  }
 
   // Bouton enchérir dans la galerie
   const btnGalerie = document.getElementById('btn-galerie-encherir');
@@ -953,8 +1037,10 @@ function terminerEnchere(id) {
   if (lot) { lot.statut='termine'; sauvegarder(); renderAdmin(); }
 }
 function supprimerLot(id) {
-  if (!confirm('Supprimer ce lot ?')) return;
-  lots=lots.filter(l=>l.id!==id); encheres=encheres.filter(e=>e.lotId!==id); sauvegarder(); renderAdmin();
+  if (!confirm('Supprimer ce lot ? Il disparaîtra du site client mais restera dans vos archives admin.')) return;
+  const lot = lots.find(l => l.id === id);
+  if (lot) { lot.archive = true; lot.statut = 'archive'; }
+  sauvegarder(); renderAdmin();
 }
 function validerMembre(id) {
   const m=membres.find(m=>m.id===id); if(m){m.valide=true; sauvegarder(); renderAdmin();}
@@ -1031,6 +1117,142 @@ function renderAdmin() {
         </div></td>
       </tr>`).join('')}</tbody>
     </table>` : '<div class="section-vide">Aucun membre.</div>';
+}
+
+// ── FAVORIS ──
+function toggleFavori(event, lotId) {
+  event.stopPropagation();
+  if (!userConnecte) { ouvrirModalAuth(); return; }
+  const key = 'pc_favoris_' + userConnecte.email;
+  let favs = JSON.parse(localStorage.getItem(key) || '[]');
+  const idx = favs.indexOf(lotId);
+  if (idx === -1) { favs.push(lotId); }
+  else { favs.splice(idx, 1); }
+  localStorage.setItem(key, JSON.stringify(favs));
+  // Mettre à jour le coeur sans re-render complet
+  const btn = document.getElementById('coeur-' + lotId);
+  if (btn) {
+    const isFav = favs.includes(lotId);
+    btn.textContent = isFav ? '❤️' : '🤍';
+    btn.title = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+  }
+}
+
+// ── ONGLETS CLIENT ──
+function switchTab(tab) {
+  document.querySelectorAll('.client-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.client-tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'favoris') renderFavoris();
+  if (tab === 'mes-encheres') renderMesEncheres();
+  if (tab === 'encheres-gagnees') renderEncheresGagnees();
+}
+
+// ── RENDER CLIENT ──
+function renderClient() {
+  if (!userConnecte) { showPage('connexion'); return; }
+  document.getElementById('client-header-nom').textContent = '👤 ' + userConnecte.nom;
+  // Reset onglets
+  document.querySelectorAll('.client-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  document.querySelectorAll('.client-tab-content').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderFavoris();
+  updateNav(); // Rafraîchir la pastille
+}
+
+function renderFavoris() {
+  if (!userConnecte) return;
+  const key = 'pc_favoris_' + userConnecte.email;
+  const favs = JSON.parse(localStorage.getItem(key) || '[]');
+  const lotsActifs = lots.filter(l => favs.includes(l.id) && (l.statut==='actif'||l.statut==='attente') && !l.archive);
+  const grid = document.getElementById('favoris-grid');
+  if (!lotsActifs.length) {
+    grid.innerHTML = "<div class=\"section-vide\" style=\"grid-column:1/-1\">❤️ Aucun favori pour le moment.<br>Cliquez sur le coeur sur un lot pour l\'ajouter ici.</div>";
+    return;
+  }
+  grid.innerHTML = lotsActifs.map(lot => cardHTML(lot)).join('');
+  // Timer si actif
+  if (lotsActifs.some(l => l.statut==='actif')) setTimeout(renderFavoris, 1000);
+}
+
+function renderMesEncheres() {
+  if (!userConnecte) return;
+  const mesOffres = encheres.filter(e => e.email === userConnecte.email);
+  const lotIds = [...new Set(mesOffres.map(e => e.lotId))];
+  const el = document.getElementById('mes-encheres-list');
+  if (!lotIds.length) {
+    el.innerHTML = '<div class="section-vide">Aucune enchère placée pour le moment.</div>';
+    return;
+  }
+  el.innerHTML = lotIds.map(lotId => {
+    const lot = lots.find(l => l.id === lotId);
+    if (!lot) return '';
+    const mesOffresPourLot = mesOffres.filter(e => e.lotId === lotId);
+    const maMaxOffre = Math.max(...mesOffresPourLot.map(e => e.montant));
+    const meilleur = getMeilleur(lotId);
+    const photosArr = lot.photos && lot.photos.length ? lot.photos : (lot.photo ? [lot.photo] : []);
+    let statut = '', couleur = '', btnAction = '';
+    if (lot.statut === 'actif') {
+      if (meilleur && meilleur.email === userConnecte.email) {
+        statut = '🟢 En cours — Vous êtes le meilleur enchérisseur';
+        couleur = 'var(--vert)';
+      } else {
+        statut = '🔴 En cours — Vous avez été surenchéri !';
+        couleur = 'var(--rouge)';
+        btnAction = `<button class="btn-submit" style="width:auto;padding:8px 20px;font-size:13px;margin-top:8px" onclick="document.getElementById('modal-galerie').classList.add('open');ouvrirGalerie(${lot.id})">🔨 Surenchérir</button>`;
+      }
+    } else if (lot.statut === 'termine' || lot.statut === 'archive') {
+      if (meilleur && meilleur.email === userConnecte.email) {
+        statut = '🏆 Remportée — Paiement requis';
+        couleur = '#b7770d';
+      } else {
+        statut = '❌ Perdue';
+        couleur = 'var(--gris)';
+      }
+    }
+    return `
+      <div class="enchere-client-card">
+        <div class="enchere-client-img">${photosArr.length ? `<img src="${photosArr[0]}">` : '🏺'}</div>
+        <div class="enchere-client-info">
+          <div class="enchere-client-titre">${lot.titre}</div>
+          <div class="enchere-client-montant">${maMaxOffre} €</div>
+          <div style="font-family:Arial;font-size:13px;font-weight:bold;color:${couleur};margin-top:4px">${statut}</div>
+          ${btnAction}
+        </div>
+      </div>`;
+  }).join('');
+  // Rafraîchir si enchères actives
+  if (lotIds.some(id => { const l=lots.find(x=>x.id===id); return l && l.statut==='actif'; })) {
+    setTimeout(renderMesEncheres, 5000);
+  }
+}
+
+function renderEncheresGagnees() {
+  if (!userConnecte) return;
+  const el = document.getElementById('encheres-gagnees-list');
+  const gagnees = lots.filter(l => (l.statut==='termine'||l.statut==='archive') && getMeilleur(l.id)?.email === userConnecte.email);
+  if (!gagnees.length) {
+    el.innerHTML = '<div class="section-vide">🏆 Aucune enchère remportée pour le moment.</div>';
+    return;
+  }
+  el.innerHTML = gagnees.map(lot => {
+    const meilleur = getMeilleur(lot.id);
+    const montantTotal = meilleur.montant + 6.5;
+    const photosArr = lot.photos && lot.photos.length ? lot.photos : (lot.photo ? [lot.photo] : []);
+    const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent('${PAYPAL_EMAIL}')}&amount=${montantTotal.toFixed(2)}&currency_code=EUR&item_name=${encodeURIComponent('Prestige Collectors: '+lot.titre)}&return=${encodeURIComponent(window.location.href)}&cancel_return=${encodeURIComponent(window.location.href)}`;
+    return `
+      <div class="enchere-client-card" style="border-color:var(--or);border-width:2px">
+        <div class="enchere-client-img">${photosArr.length ? `<img src="${photosArr[0]}">` : '🏺'}</div>
+        <div class="enchere-client-info" style="flex:1">
+          <div class="enchere-client-titre">${lot.titre}</div>
+          <div class="enchere-client-montant">${meilleur.montant} € <span style="font-size:13px;color:var(--gris);font-weight:normal">+ 6,50 € livraison = <strong>${montantTotal.toFixed(2)} €</strong></span></div>
+          <div style="font-family:Arial;font-size:13px;font-weight:bold;color:#b7770d;margin:8px 0">🏆 Enchère remportée — Paiement requis dans les 48h</div>
+          <a href="${paypalUrl}" target="_blank">
+            <button style="background:#0070ba;color:white;border:none;padding:12px 28px;border-radius:4px;font-family:Arial;font-size:15px;font-weight:bold;cursor:pointer">💳 Payer ${montantTotal.toFixed(2)} € via PayPal</button>
+          </a>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function copierEmails() {
