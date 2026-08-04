@@ -248,7 +248,7 @@
     <div class="form-box">
       <h2>Administration</h2><p>Espace réservé.</p>
       <div class="alerte alerte-err" id="alerte-admin"></div>
-      <div class="form-group"><label>Mot de passe</label><input type="password" id="admin-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="password" id="admin-pwd" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
       <button class="btn-submit" onclick="loginAdmin()">Accéder</button>
     </div>
   </div>
@@ -340,25 +340,14 @@
 
     <div class="admin-section">
       <h3>👥 Membres inscrits</h3>
-      <div id="liste-membres"><div class="section-vide">Aucun membre.</div></div>
+      <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn-aa btn-or" onclick="copierEmails()" id="btn-copier-emails" style="display:none">📋 Copier tous les emails</button>
+      <span id="copier-confirm" style="font-family:Arial;font-size:13px;color:var(--vert);display:none">✓ Emails copiés ! Collez-les dans Gmail.</span>
+    </div>
+    <div id="liste-membres"><div class="section-vide">Aucun membre.</div></div>
     </div>
 
-    <div class="admin-section">
-      <h3>📧 Notification membres</h3>
-      <div class="form-group"><label>Objet</label><input type="text" id="email-objet" placeholder="🔔 Nouveau lot — Prestige Collector's"></div>
-      <div class="form-group"><label>Message</label><textarea id="email-corps" rows="5" placeholder="Bonjour,&#10;&#10;Un nouveau lot est disponible..."></textarea></div>
-      <div class="email-preview" id="email-preview"></div>
-      <button class="btn-email" onclick="previewEmail()">👁 Prévisualiser</button>
-      <button class="btn-email" style="background:var(--vert);color:white" onclick="envoyerEmail()">📤 Envoyer</button>
-      <div style="background:#fff8e8;border:1px solid #f0d080;border-radius:4px;padding:14px;margin-top:12px;font-family:Arial;font-size:13px;">
-        <strong style="color:#b7770d">📧 Pour activer l'envoi réel des emails :</strong><br><br>
-        1. Créez un compte gratuit sur <a href="https://www.emailjs.com" target="_blank" style="color:#3d5ea6">emailjs.com</a><br>
-        2. Créez un service email (Gmail recommandé)<br>
-        3. Créez un template avec les variables : <code>{{to_email}}</code>, <code>{{subject}}</code>, <code>{{message}}</code><br>
-        4. Remplacez dans le code : <code>YOUR_SERVICE_ID</code>, <code>YOUR_TEMPLATE_ID</code>, <code>YOUR_PUBLIC_KEY</code><br><br>
-        <span style="color:var(--gris)">En attendant, le bouton "Envoyer" affiche la liste des destinataires.</span>
-      </div>
-    </div>
+
   </div>
 </div>
 
@@ -459,6 +448,14 @@ function showPage(id) {
   if (id === 'en-cours') renderEnCours();
   if (id === 'a-venir') renderAVenir();
   if (id === 'admin') renderAdmin();
+  // Sécurité : vider le champ mot de passe admin à chaque ouverture
+  if (id === 'admin-login') {
+    setTimeout(() => {
+      const pwd = document.getElementById('admin-pwd');
+      if (pwd) { pwd.value = ''; pwd.focus(); }
+      document.getElementById('alerte-admin').style.display = 'none';
+    }, 50);
+  }
 }
 
 // PHOTO UPLOAD MULTI
@@ -1018,6 +1015,10 @@ function renderAdmin() {
     </div>`;
   }).join('') : '<div class="section-vide">Aucune enchère terminée.</div>';
 
+  // Afficher/cacher bouton copier emails
+  const btnCopier = document.getElementById('btn-copier-emails');
+  if (btnCopier) btnCopier.style.display = membres.length ? 'inline-block' : 'none';
+
   document.getElementById('liste-membres').innerHTML = membres.length ? `
     <table class="membres-table">
       <thead><tr><th>Nom</th><th>Email</th><th>Boutique</th><th>Ville</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -1032,31 +1033,28 @@ function renderAdmin() {
     </table>` : '<div class="section-vide">Aucun membre.</div>';
 }
 
-function previewEmail() {
-  const prev=document.getElementById('email-preview');
-  prev.style.display='block';
-  prev.innerHTML=`<strong>Objet :</strong> ${document.getElementById('email-objet').value}<br><br>${document.getElementById('email-corps').value.replace(/\n/g,'<br>')}`;
-}
-async function envoyerEmail() {
+function copierEmails() {
   const actifs = membres.filter(m => m.valide);
   if (!actifs.length) { alert('Aucun membre actif.'); return; }
-  const objet = document.getElementById('email-objet').value;
-  const corps = document.getElementById('email-corps').value;
-  if (!objet || !corps) { alert('Remplissez l\'objet et le message.'); return; }
-  try {
-    const r = await fetch('https://formspree.io/f/maewwpdl', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'contact.prestigecollectors@gmail.com',
-        subject: '[Prestige Collectors] ' + objet,
-        message: 'DESTINATAIRES : ' + actifs.map(m=>m.email).join(', ') + '\n\n' + corps
-      })
-    });
-    if (r.ok) { alert(`✓ Email envoyé ! (${actifs.length} membre(s) notifiés via votre email.)`); }
-    else { alert('Erreur lors de l\'envoi. Réessayez.'); }
-  } catch(e) { alert('Erreur réseau : ' + e.message); }
+  const emails = actifs.map(m => m.email).join(', ');
+  navigator.clipboard.writeText(emails).then(() => {
+    const confirm = document.getElementById('copier-confirm');
+    confirm.style.display = 'inline';
+    setTimeout(() => confirm.style.display = 'none', 3000);
+  }).catch(() => {
+    // Fallback si clipboard API non disponible
+    const ta = document.createElement('textarea');
+    ta.value = emails;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const confirm = document.getElementById('copier-confirm');
+    confirm.style.display = 'inline';
+    setTimeout(() => confirm.style.display = 'none', 3000);
+  });
 }
+
 
 async function notifierGagnant(nom, email, titre, montant) {
   await fetch('https://formspree.io/f/maewwpdl', {
@@ -1070,17 +1068,7 @@ async function notifierGagnant(nom, email, titre, montant) {
   });
 }
 
-async function notifierNouvelleInscription(membre) {
-  await fetch('https://formspree.io/f/maewwpdl', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: 'contact.prestigecollectors@gmail.com',
-      subject: '[Prestige Collectors] 🆕 Nouvelle inscription — ' + membre.nom,
-      message: `NOM : ${membre.nom}\nEMAIL : ${membre.email}\nBOUTIQUE : ${membre.boutique}\nVILLE : ${membre.ville}\nSPÉCIALITÉ : ${membre.specialite}`
-    })
-  });
-}
+
 
 // Init
 updateNav();
