@@ -576,7 +576,7 @@ Le champ verdict doit être : ACHETER (bonne affaire), NEGOCIER (possible si pri
     const response = await fetch('/.netlify/functions/claude-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 500, messages: [{ role: 'user', content }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content }] })
     });
 
     const data = await response.json();
@@ -587,7 +587,7 @@ Le champ verdict doit être : ACHETER (bonne affaire), NEGOCIER (possible si pri
       const clean = texte.replace(/```json|```/g, '').trim();
       json = JSON.parse(clean);
     } catch(e) {
-      throw new Error('Format JSON invalide');
+      throw new Error('JSON invalide — Réponse reçue : ' + texte.substring(0, 200));
     }
 
     const confiance = { haute: '🟢 Élevée', moyenne: '🟡 Moyenne', faible: '🔴 Faible' }[json.confiance] || '🟡 Moyenne';
